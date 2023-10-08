@@ -106,33 +106,7 @@ class Course:
 
     @property
     def is_professional(self) -> bool:
-        return self.types in professional_courses_name
-
-    @property
-    def is_success(self) -> bool:
-        if '*' in self.score:
-            return False
-        elif self.is_public:
-            # we don't consider public course
-            return True
-        elif self.is_professional:
-            # professional course must greater than 70
-            return int(self.score) >= 70
-        elif not self.score.isnumeric():
-            return True
-        else:
-            return int(self.score) >= 60
-
-    @property
-    def need_remake(self) -> bool:
-        if '*' in self.score:
-            return False
-        elif self.is_public:
-            return False
-        elif self.is_professional and not self.is_success:
-            return True
-        else:
-            return not self.is_success
+        return self.name in professional_courses_name
 
 
 def increasing_number(data: pandas.DataFrame) -> int:
@@ -151,10 +125,10 @@ def load_student_data(path: str) -> List[Student]:
 
 
 def main() -> None:
-    data_sheet = r''
-    summary_sheet = r'C:\Users\SakuraPuare\Desktop\附件一.xls'
+    data_sheet = '计科2211学生成绩卡.xls'
+    summary_sheet = '工作簿1.xlsx'
     data = load_student_data(data_sheet)
-    summary_sheet = pandas.read_excel(summary_sheet, header=1)
+    summary_sheet = pandas.read_excel(summary_sheet, header=0)
     # raw_columns = summary_sheet.columns
     summary_sheet.columns = range(0, len(summary_sheet.columns))
     # summary_dict = {}
@@ -174,13 +148,25 @@ def main() -> None:
         need_relearn_course = []
         unprofessional_course = []
         for course in student.course_list:
-            if not course.is_success:
-                failed_course.append(course)
-            if course.need_remake:
-                need_relearn_course.append(course)
-            if course.is_professional and not course.is_success:
-                unprofessional_course.append(course)
-        if len(failed_course + need_relearn_course + unprofessional_course):
+            score = course.score
+            if '*' in score:
+                score = score.replace('*', '')
+
+            if not course.score.isnumeric():
+                continue
+            else:
+                score = int(score)
+            if course.is_professional:
+                if score < 70:
+                    failed_course.append(course)
+                    unprofessional_course.append(course)
+                    need_relearn_course.append(course)
+            else:
+                if score < 60:
+                    failed_course.append(course)
+                    need_relearn_course.append(course)
+
+        if len(failed_course) + len(need_relearn_course) + len(unprofessional_course):
             # add a new line to datasheet
             loc = increasing_number(summary_sheet[0])
             summary_sheet.loc[loc, 0] = loc
@@ -193,7 +179,7 @@ def main() -> None:
             summary_sheet.loc[loc, 7] = '\n'.join([f'{i.name} {i.score}' for i in unprofessional_course])
             summary_sheet.loc[loc, 8] = '\n'.join([i.name for i in need_relearn_course])
     # summary_sheet.columns = raw_columns
-    summary_sheet.to_excel(r'C:\Users\SakuraPuare\Desktop\附件一.xlsx', index=False)
+    summary_sheet.to_excel('工作簿1.xlsx', index=False)
     pass
 
 
